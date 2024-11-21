@@ -139,12 +139,12 @@ void yg_display_init(i2c_master_bus_handle_t i2c_bus_handle) {
 bool yg_display_get_touches(esp_lcd_touch_handle_t *touch) {
     if (xSemaphoreTake(yg_display.touch_semaphore, 0) == pdTRUE) {
         esp_lcd_touch_read_data(yg_display.touch_handle);
-        *touch = yg_display.touch_handle;
+        if (touch) { *touch = yg_display.touch_handle; }
         return true;
     } else {
-        touch = NULL;
+        if (touch) { *touch = NULL; }
+        return false;
     }
-    return false;
 }
 
 const uint16_t colors[8] = {0xF800, 0x07E0, 0x001F, 0xFFE0, 0xF81F, 0x07FF, 0xFFFF, 0x0000};
