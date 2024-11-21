@@ -7,8 +7,11 @@
 
 #include "esp_log.h"
 #include "esp_timer.h"
-#include "nvs_flash.h"
 
+#include "nvs_flash.h"
+#include "driver/i2c_master.h"
+
+#include "yg_config.h"
 #include "yg_display.h"
 
 static const char *TAG = "yg";
@@ -29,8 +32,19 @@ void app_main(void) {
     }
     ESP_ERROR_CHECK(ret);
 
+    ESP_LOGI(TAG, "i2c_new_master_bus");
+    const i2c_master_bus_config_t i2c_bus_conf = {
+        .i2c_port = 0,
+        .sda_io_num = YG_PIN_NUM_TP_SDA,
+        .scl_io_num = YG_PIN_NUM_TP_SCL,
+        .flags.enable_internal_pullup = true,
+        .clk_source = I2C_CLK_SRC_XTAL,
+    };
+    i2c_master_bus_handle_t i2c_bus_handle;
+    ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_bus_conf, &i2c_bus_handle));
+
     ESP_LOGI(TAG, "yg_display_init");
-    yg_display_init();
+    yg_display_init(i2c_bus_handle);
     ESP_LOGI(TAG, "yg_runloop_init");
     yg_runloop_init();
 }

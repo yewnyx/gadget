@@ -14,36 +14,11 @@
 #include "esp_lcd_touch_cst816s.h"
 #include "esp_timer.h"
 
-#include "driver/i2c_master.h"
 #include "driver/i2c_types.h"
 
+#include "yg_config.h"
+
 static const char *TAG = "yg_display";
-
-#define YG_LCD_H_RES              240
-#define YG_LCD_V_RES              240
-#define YG_LCD_FILL_BLOCKS        8
-#define YG_LCD_BUF_PIXEL_COUNT    YG_LCD_H_RES * YG_LCD_V_RES / YG_LCD_FILL_BLOCKS
-#define YG_LCD_BUF_SIZE           YG_LCD_BUF_PIXEL_COUNT * sizeof(uint16_t)
-
-#define YG_LCD_CMD_BITS           8
-#define YG_LCD_PARAM_BITS         8
-#define YG_LCD_SPI_HOST           SPI2_HOST
-
-#define YG_LCD_PIXEL_CLOCK_HZ     (80 * 1000 * 1000)
-#define YG_LCD_BK_LIGHT_ON_LEVEL  1
-#define YG_LCD_BK_LIGHT_OFF_LEVEL !YG_LCD_BK_LIGHT_ON_LEVEL
-
-#define YG_PIN_NUM_LCD_BL         GPIO_NUM_2
-#define YG_PIN_NUM_TP_INT         GPIO_NUM_5
-#define YG_PIN_NUM_TP_SDA         GPIO_NUM_6
-#define YG_PIN_NUM_TP_SCL         GPIO_NUM_7
-#define YG_PIN_NUM_LCD_DC         GPIO_NUM_8
-#define YG_PIN_NUM_LCD_CS         GPIO_NUM_9
-#define YG_PIN_NUM_LCD_SCLK       GPIO_NUM_10
-#define YG_PIN_NUM_LCD_MOSI       GPIO_NUM_11
-#define YG_PIN_NUM_LCD_MISO       GPIO_NUM_12
-#define YG_PIN_NUM_TP_RST         GPIO_NUM_13
-#define YG_PIN_NUM_LCD_RST        GPIO_NUM_14
 
 typedef struct {
     uint16_t *buf1;
@@ -62,7 +37,7 @@ void yg_tick(void *arg);
 bool yg_color_trans_done(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_event_data_t *edata, void *user_ctx);
 void yg_lcd_touch_callback(esp_lcd_touch_handle_t tp);
 
-void yg_display_init(void) {
+void yg_display_init(i2c_master_bus_handle_t i2c_bus_handle) {
     ESP_LOGI(TAG, "Turn off LCD backlight");
     gpio_config_t bk_gpio_config = {
         .mode = GPIO_MODE_OUTPUT,
@@ -133,17 +108,6 @@ void yg_display_init(void) {
     ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(yg_display.panel_handle, true));
     ESP_ERROR_CHECK(gpio_set_level(YG_PIN_NUM_LCD_BL, YG_LCD_BK_LIGHT_ON_LEVEL));
 
-    ESP_LOGI(TAG, "i2c_new_master_bus");
-    const i2c_master_bus_config_t i2c_bus_conf = {
-        .i2c_port = 0,
-        .sda_io_num = YG_PIN_NUM_TP_SDA,
-        .scl_io_num = YG_PIN_NUM_TP_SCL,
-        .flags.enable_internal_pullup = true,
-        .clk_source = I2C_CLK_SRC_XTAL,
-    };
-    i2c_master_bus_handle_t i2c_bus_handle;
-    ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_bus_conf, &i2c_bus_handle));
-    
     ESP_LOGI(TAG, "esp_lcd_new_panel_io_i2c");
     esp_lcd_panel_io_handle_t tp_io_handle = NULL;
     esp_lcd_panel_io_i2c_config_t tp_io_config = ESP_LCD_TOUCH_IO_I2C_CST816S_CONFIG();
