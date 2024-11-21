@@ -170,24 +170,17 @@ void yg_display_init(void) {
         .user_data = &yg_display,
     };
     ESP_ERROR_CHECK(esp_lcd_touch_new_i2c_cst816s(tp_io_handle, &tp_cfg, &yg_display.touch_handle));
+}
 
-    // TODO: Refactor this out to a main loop in the main.c file
-    while(1) {
-        if (xSemaphoreTake(yg_display.touch_semaphore, 0) == pdTRUE) {
-            esp_lcd_touch_read_data(yg_display.touch_handle); // read only when ISR was triggled
-            uint16_t touch_x[1];
-            uint16_t touch_y[1];
-            uint16_t touch_strength[1];
-            uint8_t touch_cnt = 0;
-
-            bool touchpad_pressed = esp_lcd_touch_get_coordinates(yg_display.touch_handle, touch_x, touch_y, touch_strength, &touch_cnt, 1);
-            if (touchpad_pressed && touch_cnt > 0) {
-                ESP_LOGI(TAG, "Touchpad pressed at x: %d, y: %d, strength: %d", touch_x[0], touch_y[0], touch_strength[0]);
-            }
-        }
-        // sleep
-        vTaskDelay(1);
+bool yg_display_get_touches(esp_lcd_touch_handle_t *touch) {
+    if (xSemaphoreTake(yg_display.touch_semaphore, 0) == pdTRUE) {
+        esp_lcd_touch_read_data(yg_display.touch_handle);
+        *touch = yg_display.touch_handle;
+        return true;
+    } else {
+        touch = NULL;
     }
+    return false;
 }
 
 const uint16_t colors[8] = {0xF800, 0x07E0, 0x001F, 0xFFE0, 0xF81F, 0x07FF, 0xFFFF, 0x0000};
