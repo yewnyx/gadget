@@ -81,9 +81,9 @@ void yg_display_init(i2c_master_bus_handle_t i2c_bus_handle) {
 
     ESP_LOGI(TAG, "Initialize transfer semaphore and display buffers");
     vSemaphoreCreateBinary(yg_display.transfer_semaphore);
-    yg_display.buf1 = heap_caps_malloc(YG_LCD_BUF_SIZE, MALLOC_CAP_DMA);
+    yg_display.buf1 = heap_caps_malloc(YG_LCD_BUF_SIZE, MALLOC_CAP_DMA | MALLOC_CAP_SPIRAM);
     assert(yg_display.buf1);
-    yg_display.buf2 = heap_caps_malloc(YG_LCD_BUF_SIZE, MALLOC_CAP_DMA);
+    yg_display.buf2 = heap_caps_malloc(YG_LCD_BUF_SIZE, MALLOC_CAP_DMA | MALLOC_CAP_SPIRAM);
     assert(yg_display.buf2);
 
     ESP_LOGI(TAG, "Install callbacks");
