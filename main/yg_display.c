@@ -38,13 +38,6 @@ bool yg_color_trans_done(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_ev
 void yg_lcd_touch_callback(esp_lcd_touch_handle_t tp);
 
 void yg_display_init(i2c_master_bus_handle_t i2c_bus_handle) {
-    ESP_LOGI(TAG, "Turn off LCD backlight");
-    gpio_config_t bk_gpio_config = {
-        .mode = GPIO_MODE_OUTPUT,
-        .pin_bit_mask = 1ULL << YG_PIN_NUM_LCD_BL,
-    };
-    ESP_ERROR_CHECK(gpio_config(&bk_gpio_config));
-
     ESP_LOGI(TAG, "spi_bus_initialize");
     spi_bus_config_t bus_config = {
         .sclk_io_num = YG_PIN_NUM_LCD_SCLK,
@@ -55,6 +48,33 @@ void yg_display_init(i2c_master_bus_handle_t i2c_bus_handle) {
         .max_transfer_sz = YG_LCD_BUF_SIZE,
     };
     ESP_ERROR_CHECK(spi_bus_initialize(YG_LCD_SPI_HOST, &bus_config, SPI_DMA_CH_AUTO));
+
+    ESP_LOGI(TAG, "esp_lcd_new_panel_io_i2c");
+    esp_lcd_panel_io_handle_t tp_io_handle = NULL;
+    esp_lcd_panel_io_i2c_config_t tp_io_config = ESP_LCD_TOUCH_IO_I2C_CST816S_CONFIG();
+    tp_io_config.scl_speed_hz = 400 * 1000;
+    ESP_ERROR_CHECK(esp_lcd_new_panel_io_i2c(i2c_bus_handle , &tp_io_config, &tp_io_handle));
+
+    ESP_LOGI(TAG, "esp_lcd_touch_new_i2c_cst816s");
+    yg_display.touch_semaphore = xSemaphoreCreateBinary();
+    esp_lcd_touch_config_t tp_cfg = {
+        .x_max = YG_LCD_H_RES,
+        .y_max = YG_LCD_V_RES,
+        .rst_gpio_num = YG_PIN_NUM_TP_RST,
+        .int_gpio_num = YG_PIN_NUM_TP_INT,
+        .levels = {
+            .reset = 0,
+            .interrupt = 0,
+        },
+        .flags = {
+            .swap_xy = 0,
+            .mirror_x = 0,
+            .mirror_y = 0,
+        },
+        .interrupt_callback = yg_lcd_touch_callback,
+        .user_data = &yg_display,
+    };
+    ESP_ERROR_CHECK(esp_lcd_touch_new_i2c_cst816s(tp_io_handle, &tp_cfg, &yg_display.touch_handle));
 
     ESP_LOGI(TAG, "esp_lcd_new_panel_io_spi");
     esp_lcd_panel_io_spi_config_t io_config = {
@@ -100,40 +120,12 @@ void yg_display_init(i2c_master_bus_handle_t i2c_bus_handle) {
     const esp_lcd_panel_io_callbacks_t io_callbacks = { .on_color_trans_done = yg_color_trans_done, };
     ESP_ERROR_CHECK(esp_lcd_panel_io_register_event_callbacks(panel_io_handle, &io_callbacks, &yg_display));
 
-    ESP_LOGI(TAG, "Initialize panel then turn on backlight");
+    ESP_LOGI(TAG, "Initialize panel");
     ESP_ERROR_CHECK(esp_lcd_panel_reset(yg_display.panel_handle));
     ESP_ERROR_CHECK(esp_lcd_panel_init(yg_display.panel_handle));
     ESP_ERROR_CHECK(esp_lcd_panel_invert_color(yg_display.panel_handle, true));
     ESP_ERROR_CHECK(esp_lcd_panel_mirror(yg_display.panel_handle, false, false));
     ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(yg_display.panel_handle, true));
-    ESP_ERROR_CHECK(gpio_set_level(YG_PIN_NUM_LCD_BL, YG_LCD_BK_LIGHT_ON_LEVEL));
-
-    ESP_LOGI(TAG, "esp_lcd_new_panel_io_i2c");
-    esp_lcd_panel_io_handle_t tp_io_handle = NULL;
-    esp_lcd_panel_io_i2c_config_t tp_io_config = ESP_LCD_TOUCH_IO_I2C_CST816S_CONFIG();
-    tp_io_config.scl_speed_hz = 400 * 1000;
-    ESP_ERROR_CHECK(esp_lcd_new_panel_io_i2c(i2c_bus_handle , &tp_io_config, &tp_io_handle));
-
-    ESP_LOGI(TAG, "esp_lcd_touch_new_i2c_cst816s");
-    yg_display.touch_semaphore = xSemaphoreCreateBinary();
-    esp_lcd_touch_config_t tp_cfg = {
-        .x_max = YG_LCD_H_RES,
-        .y_max = YG_LCD_V_RES,
-        .rst_gpio_num = YG_PIN_NUM_TP_RST,
-        .int_gpio_num = YG_PIN_NUM_TP_INT,
-        .levels = {
-            .reset = 0,
-            .interrupt = 0,
-        },
-        .flags = {
-            .swap_xy = 0,
-            .mirror_x = 0,
-            .mirror_y = 0,
-        },
-        .interrupt_callback = yg_lcd_touch_callback,
-        .user_data = &yg_display,
-    };
-    ESP_ERROR_CHECK(esp_lcd_touch_new_i2c_cst816s(tp_io_handle, &tp_cfg, &yg_display.touch_handle));
 }
 
 bool yg_display_get_touches(esp_lcd_touch_handle_t *touch) {

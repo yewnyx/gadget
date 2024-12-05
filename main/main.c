@@ -24,6 +24,14 @@ void timer_callback(void* arg);
 void runloop_task(void* arg);
 
 void app_main(void) {
+    ESP_LOGI(TAG, "Turn off LCD backlight");
+    gpio_config_t bk_gpio_config = {
+        .mode = GPIO_MODE_OUTPUT,
+        .pin_bit_mask = 1ULL << YG_PIN_NUM_LCD_BL,
+    };
+    ESP_ERROR_CHECK(gpio_config(&bk_gpio_config));
+
+
     ESP_LOGI(TAG, "nvs_flash_init");
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -45,6 +53,8 @@ void app_main(void) {
 
     ESP_LOGI(TAG, "yg_display_init");
     yg_display_init(i2c_bus_handle);
+    ESP_LOGI(TAG, "Turn on backlight");
+    ESP_ERROR_CHECK(gpio_set_level(YG_PIN_NUM_LCD_BL, YG_LCD_BK_LIGHT_ON_LEVEL));
     ESP_LOGI(TAG, "yg_runloop_init");
     yg_runloop_init();
 }
