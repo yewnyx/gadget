@@ -1,6 +1,7 @@
 #include "yg_display.h"
 
 #include <stdint.h>
+#include <string.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
@@ -32,12 +33,20 @@ typedef struct {
 
 static yg_display_t yg_display;
 
+static int64_t previousTime;
+static int64_t deltas[16];
+static int8_t deltaIndex;
+
 void yg_draw_rect(const esp_lcd_panel_io_handle_t io, uint16_t x_start, uint16_t y_start, uint16_t x_end, uint16_t y_end, const void *color_data);
 void yg_tick(void *arg);
 bool yg_color_trans_done(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_event_data_t *edata, void *user_ctx);
 void yg_lcd_touch_callback(esp_lcd_touch_handle_t tp);
 
 void yg_display_init(i2c_master_bus_handle_t i2c_bus_handle) {
+    previousTime = esp_timer_get_time();
+    memset(deltas, 0, sizeof(deltas));
+    deltaIndex = -1;
+
     ESP_LOGI(TAG, "Turn off LCD backlight");
     gpio_config_t bk_gpio_config = {
         .mode = GPIO_MODE_OUTPUT,
@@ -150,6 +159,11 @@ bool yg_display_get_touches(esp_lcd_touch_handle_t *touch) {
 const uint16_t colors[8] = {0xF800, 0x07E0, 0x001F, 0xFFE0, 0xF81F, 0x07FF, 0xFFFF, 0x0000};
 
 void yg_tick(void *arg) {
+    int64_t currentTime = esp_timer_get_time();
+    deltaIndex = (deltaIndex + 1) % 16;
+    deltas[deltaIndex] = currentTime - previousTime;
+    previousTime = currentTime;
+
     yg_display_t *yg_display_p = (yg_display_t *)arg;
     uint16_t tick_counter = yg_display_p->tick_num;
 
@@ -171,6 +185,16 @@ void yg_tick(void *arg) {
         YG_LCD_H_RES, (tick_counter + 1) * (YG_LCD_V_RES/YG_LCD_FILL_BLOCKS),
         buf);
     yg_display_p->tick_num = (tick_counter + 1) % YG_LCD_FILL_BLOCKS;
+
+    // randomly print the average delta with a probability of 1/90
+    if (rand() % 32 == 0) {
+        int64_t sum = 0;
+        for (int i = 0; i < 16; i++) {
+            sum += deltas[i];
+        }
+        ESP_LOGI(TAG, "Average delta: %lld", sum / 16);
+    }
+    
 }
 
 bool yg_color_trans_done(esp_lcd_panel_io_handle_t panel_io_handle, esp_lcd_panel_io_event_data_t *edata, void *user_ctx) {
