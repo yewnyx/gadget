@@ -38,7 +38,7 @@ bool yg_color_trans_done(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_ev
 void yg_lcd_touch_callback(esp_lcd_touch_handle_t tp);
 
 void yg_display_init(i2c_master_bus_handle_t i2c_bus_handle) {
-    ESP_LOGI(TAG, "spi_bus_initialize");
+    ESP_LOGI(TAG, "Initialize SPI bus");
     spi_bus_config_t bus_config = {
         .sclk_io_num = YG_PIN_NUM_LCD_SCLK,
         .mosi_io_num = YG_PIN_NUM_LCD_MOSI,
@@ -55,7 +55,7 @@ void yg_display_init(i2c_master_bus_handle_t i2c_bus_handle) {
     tp_io_config.scl_speed_hz = 400 * 1000;
     ESP_ERROR_CHECK(esp_lcd_new_panel_io_i2c(i2c_bus_handle , &tp_io_config, &tp_io_handle));
 
-    ESP_LOGI(TAG, "esp_lcd_touch_new_i2c_cst816s");
+    ESP_LOGI(TAG, "Install CST816S touch panel driver");
     yg_display.touch_semaphore = xSemaphoreCreateBinary();
     esp_lcd_touch_config_t tp_cfg = {
         .x_max = YG_LCD_H_RES,
@@ -106,7 +106,7 @@ void yg_display_init(i2c_master_bus_handle_t i2c_bus_handle) {
     yg_display.buf2 = heap_caps_malloc(YG_LCD_BUF_SIZE, MALLOC_CAP_DMA | MALLOC_CAP_SPIRAM);
     assert(yg_display.buf2);
 
-    ESP_LOGI(TAG, "Install callbacks");
+    ESP_LOGI(TAG, "Start display tick timer");
     const esp_timer_create_args_t tick_timer_args = {
         .arg = &yg_display,
         .callback = &yg_tick,
@@ -120,7 +120,7 @@ void yg_display_init(i2c_master_bus_handle_t i2c_bus_handle) {
     const esp_lcd_panel_io_callbacks_t io_callbacks = { .on_color_trans_done = yg_color_trans_done, };
     ESP_ERROR_CHECK(esp_lcd_panel_io_register_event_callbacks(panel_io_handle, &io_callbacks, &yg_display));
 
-    ESP_LOGI(TAG, "Initialize panel");
+    ESP_LOGI(TAG, "Reset and init LCD panel");
     ESP_ERROR_CHECK(esp_lcd_panel_reset(yg_display.panel_handle));
     ESP_ERROR_CHECK(esp_lcd_panel_init(yg_display.panel_handle));
     ESP_ERROR_CHECK(esp_lcd_panel_invert_color(yg_display.panel_handle, true));

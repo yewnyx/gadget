@@ -51,12 +51,12 @@ void app_main(void) {
     i2c_master_bus_handle_t i2c_bus_handle;
     ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_bus_conf, &i2c_bus_handle));
 
-    ESP_LOGI(TAG, "yg_display_init");
+    ESP_LOGI(TAG, "Initialize display");
     yg_display_init(i2c_bus_handle);
+    ESP_LOGI(TAG, "Start runloop");
+    yg_runloop_init();
     ESP_LOGI(TAG, "Turn on backlight");
     ESP_ERROR_CHECK(gpio_set_level(YG_PIN_NUM_LCD_BL, YG_LCD_BK_LIGHT_ON_LEVEL));
-    ESP_LOGI(TAG, "yg_runloop_init");
-    yg_runloop_init();
 }
 
 void yg_runloop_init(void) {
