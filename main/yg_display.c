@@ -199,7 +199,8 @@ void yg_tick(void *arg) {
 
                     // Offset by line and line height, then by line width, then by pixel
                     int pixel_index = YG_LCD_H_RES * ((line_num % LINES_PER_BLOCK) * FONT_HEIGHT + y) + (FONT_WIDTH * char_num) + x;
-                    buf[pixel_index] = is_pixel_set ? 0xF800 : 0xF81F;
+                    // buf[pixel_index] = is_pixel_set ? 0xF800 : 0xF81F;
+                    buf[pixel_index] = is_pixel_set ? colors[tick_counter % 7] : 0x0000;
                 }
             }
         }
