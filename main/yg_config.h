@@ -1,8 +1,16 @@
+#pragma once
+
+#include "spleen-6x12.h"
+
 #define YG_LCD_H_RES              240
 #define YG_LCD_V_RES              240
-#define YG_LCD_FILL_BLOCKS        8
+#define YG_LCD_FILL_BLOCKS        10
 #define YG_LCD_BUF_PIXEL_COUNT    YG_LCD_H_RES * YG_LCD_V_RES / YG_LCD_FILL_BLOCKS
 #define YG_LCD_BUF_SIZE           YG_LCD_BUF_PIXEL_COUNT * sizeof(uint16_t)
+#define YG_LCD_LINE_WIDTH         YG_LCD_H_RES / FONT_WIDTH
+#define YG_LCD_LINE_COUNT         YG_LCD_V_RES / FONT_HEIGHT
+#define YG_LCD_CHAR_COUNT         YG_LCD_LINE_WIDTH * YG_LCD_LINE_COUNT
+#define YG_LCD_CHAR_SIZE          (FONT_WIDTH * FONT_HEIGHT / sizeof(uint8_t))
 
 #define YG_LCD_CMD_BITS           8
 #define YG_LCD_PARAM_BITS         8

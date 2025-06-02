@@ -31,6 +31,9 @@ typedef struct {
 } yg_display_t;
 
 static yg_display_t yg_display;
+static char charbuf[YG_LCD_LINE_COUNT][YG_LCD_LINE_WIDTH] = { 0 };
+//static char charbuf[YG_LCD_LINE_COUNT * YG_LCD_LINE_WIDTH];
+static char chars[95] = { ' ', '!', '"', '#', '$', '%', '&', '\'', '(', ')', '*', '+', ',', '-', '.', '/', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';', '<', '=', '>', '?', '@', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '[', '\\', ']', '^', '_', '`', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '{', '|', '}', '~' };
 
 void yg_draw_rect(const esp_lcd_panel_io_handle_t io, uint16_t x_start, uint16_t y_start, uint16_t x_end, uint16_t y_end, const void *color_data);
 void yg_tick(void *arg);
@@ -38,7 +41,26 @@ bool yg_color_trans_done(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_ev
 void yg_lcd_touch_callback(esp_lcd_touch_handle_t tp);
 
 void yg_display_init(i2c_master_bus_handle_t i2c_bus_handle) {
-    ESP_LOGI(TAG, "Initialize SPI bus");
+    ESP_LOGI(TAG, "Fill charbuf with characters");
+    int char_index = 0;
+    for (int i = 0; i < YG_LCD_LINE_COUNT; i++) {
+        for (int j = 0; j < YG_LCD_LINE_WIDTH; j++) {
+            int index = char_index % 95;
+            charbuf[i][j] = chars[index];
+            char_index++;
+        }
+    }
+
+    // int test_char_index = 0;
+    // for (int line_num = 0; line_num < YG_LCD_LINE_COUNT; line_num++) {
+    //     for (int char_index = 0; char_index < YG_LCD_LINE_WIDTH; char_index++) {
+    //         int index = test_char_index % 95;
+    //         charbuf[line_num * YG_LCD_LINE_WIDTH + char_index] = chars[index];
+    //         test_char_index++;
+    //     }
+    // }
+
+    ESP_LOGI(TAG, "spi_bus_initialize");
     spi_bus_config_t bus_config = {
         .sclk_io_num = YG_PIN_NUM_LCD_SCLK,
         .mosi_io_num = YG_PIN_NUM_LCD_MOSI,
@@ -152,9 +174,35 @@ void yg_tick(void *arg) {
         buf = yg_display_p->buf2;
     }
 
-    // TODO: Do some useful drawing instead
-    for (uint32_t i = 0; i < YG_LCD_BUF_PIXEL_COUNT; i ++) {
-        buf[i] = colors[tick_counter];
+    const int BLOCK_PX_HEIGHT = (YG_LCD_V_RES / YG_LCD_FILL_BLOCKS);
+    const int LINES_PER_BLOCK = (BLOCK_PX_HEIGHT / FONT_HEIGHT);
+    int line_start_index = tick_counter * LINES_PER_BLOCK;
+
+    for (int line_num = line_start_index; line_num < line_start_index + LINES_PER_BLOCK; line_num++) {
+        for (int char_num = 0; char_num < YG_LCD_LINE_WIDTH; char_num++) {
+            int char_to_draw = charbuf[line_num][char_num];
+            if (char_to_draw < 32 || char_to_draw >= 127) {
+                // Skip invalid characters
+                ESP_LOGE(TAG, "Invalid character: %d at position (%d, %d)", char_to_draw, line_num, char_num);
+                continue;
+            }
+
+            // if (char_to_draw != ' ') {
+            //     ESP_LOGI(TAG, "Drawing character '%c' (ASCII %d) at position (%d, %d)", char_to_draw, char_to_draw, line_num, char_num);
+            // }
+
+            uint16_t *char_bits = spleen_6x12_chars[char_to_draw - 32];
+            for (int x = 0; x < FONT_WIDTH; x++) {
+                for (int y = 0; y < FONT_HEIGHT; y++) {
+                    bool is_pixel_set = (char_bits[y] & (1 << (FONT_WIDTH - x + 1))) != 0;
+                    //bool is_pixel_set = x % 3 == 0 || x % 3 == 1 || y % 5 == 0 || y % 5 == 1;
+
+                    // Offset by line and line height, then by line width, then by pixel
+                    int pixel_index = YG_LCD_H_RES * ((line_num % LINES_PER_BLOCK) * FONT_HEIGHT + y) + (FONT_WIDTH * char_num) + x;
+                    buf[pixel_index] = is_pixel_set ? 0xF800 : 0xF81F;
+                }
+            }
+        }
     }
 
     xSemaphoreTake(yg_display_p->transfer_semaphore, portMAX_DELAY);
