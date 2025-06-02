@@ -191,7 +191,7 @@ void yg_tick(void *arg) {
             //     ESP_LOGI(TAG, "Drawing character '%c' (ASCII %d) at position (%d, %d)", char_to_draw, char_to_draw, line_num, char_num);
             // }
 
-            uint16_t *char_bits = spleen_6x12_chars[char_to_draw - 32];
+            uint16_t *char_bits = font_chars[char_to_draw - 32];
             for (int x = 0; x < FONT_WIDTH; x++) {
                 for (int y = 0; y < FONT_HEIGHT; y++) {
                     bool is_pixel_set = (char_bits[y] & (1 << (FONT_WIDTH - x + 1))) != 0;
