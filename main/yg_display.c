@@ -43,10 +43,10 @@ void yg_lcd_touch_callback(esp_lcd_touch_handle_t tp);
 void yg_display_init(i2c_master_bus_handle_t i2c_bus_handle) {
     ESP_LOGI(TAG, "Fill charbuf with characters");
     int char_index = 0;
-    for (int i = 0; i < YG_LCD_LINE_COUNT; i++) {
-        for (int j = 0; j < YG_LCD_LINE_WIDTH; j++) {
+    for (int line_num = 0; line_num < YG_LCD_LINE_COUNT; line_num++) {
+        for (int char_num = 0; char_num < YG_LCD_LINE_WIDTH; char_num++) {
             int index = char_index % 95;
-            charbuf[i][j] = chars[index];
+            charbuf[line_num][char_num] = chars[index];
             char_index++;
         }
     }
