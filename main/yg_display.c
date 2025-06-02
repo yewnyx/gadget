@@ -146,7 +146,7 @@ void yg_display_init(i2c_master_bus_handle_t i2c_bus_handle) {
     ESP_ERROR_CHECK(esp_lcd_panel_reset(yg_display.panel_handle));
     ESP_ERROR_CHECK(esp_lcd_panel_init(yg_display.panel_handle));
     ESP_ERROR_CHECK(esp_lcd_panel_invert_color(yg_display.panel_handle, true));
-    ESP_ERROR_CHECK(esp_lcd_panel_mirror(yg_display.panel_handle, false, false));
+    ESP_ERROR_CHECK(esp_lcd_panel_mirror(yg_display.panel_handle, true, false));
     ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(yg_display.panel_handle, true));
 }
 
@@ -195,11 +195,16 @@ void yg_tick(void *arg) {
             for (int x = 0; x < FONT_WIDTH; x++) {
                 for (int y = 0; y < FONT_HEIGHT; y++) {
                     bool is_pixel_set = (char_bits[y] & (1 << (FONT_WIDTH - x + 1))) != 0;
-                    //bool is_pixel_set = x % 3 == 0 || x % 3 == 1 || y % 5 == 0 || y % 5 == 1;
+                    
+                    // DEBUG: Just a grid
+                    // bool is_pixel_set = x % 3 == 0 || x % 3 == 1 || y % 5 == 0 || y % 5 == 1;
+                    
+                    // DEBUG: Reverse horizontally
+                    //const uint16_t shiftme = 0x01 << 2;
+                    //bool is_pixel_set = (char_bits[y] & (shiftme << (x))) != 0;
 
                     // Offset by line and line height, then by line width, then by pixel
                     int pixel_index = YG_LCD_H_RES * ((line_num % LINES_PER_BLOCK) * FONT_HEIGHT + y) + (FONT_WIDTH * char_num) + x;
-                    // buf[pixel_index] = is_pixel_set ? 0xF800 : 0xF81F;
                     buf[pixel_index] = is_pixel_set ? colors[tick_counter % 7] : 0x0000;
                 }
             }
