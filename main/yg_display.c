@@ -191,18 +191,15 @@ void yg_tick(void *arg) {
             //     ESP_LOGI(TAG, "Drawing character '%c' (ASCII %d) at position (%d, %d)", char_to_draw, char_to_draw, line_num, char_num);
             // }
 
-            uint16_t *char_bits = font_chars[char_to_draw - 32];
+            uint8_t *glyph_row = font_chars[char_to_draw - 32];
             for (int x = 0; x < FONT_WIDTH; x++) {
                 for (int y = 0; y < FONT_HEIGHT; y++) {
-                    bool is_pixel_set = (char_bits[y] & (1 << (FONT_WIDTH - x + 1))) != 0;
+                    const uint8_t bit_to_test = 0b10000000 >> x;
+                    bool is_pixel_set = (glyph_row[y] & bit_to_test) != 0;
                     
                     // DEBUG: Just a grid
                     // bool is_pixel_set = x % 3 == 0 || x % 3 == 1 || y % 5 == 0 || y % 5 == 1;
                     
-                    // DEBUG: Reverse horizontally
-                    //const uint16_t shiftme = 0x01 << 2;
-                    //bool is_pixel_set = (char_bits[y] & (shiftme << (x))) != 0;
-
                     // Offset by line and line height, then by line width, then by pixel
                     int pixel_index = YG_LCD_H_RES * ((line_num % LINES_PER_BLOCK) * FONT_HEIGHT + y) + (FONT_WIDTH * char_num) + x;
                     buf[pixel_index] = is_pixel_set ? colors[tick_counter % 7] : 0x0000;
