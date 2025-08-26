@@ -137,7 +137,6 @@ void yg_display_init(i2c_master_bus_handle_t i2c_bus_handle) {
 
     esp_timer_handle_t tick_timer;
     ESP_ERROR_CHECK(esp_timer_create(&tick_timer_args, &tick_timer));
-    ESP_ERROR_CHECK(esp_timer_start_periodic(tick_timer, 16666));
 
     const esp_lcd_panel_io_callbacks_t io_callbacks = { .on_color_trans_done = yg_color_trans_done, };
     ESP_ERROR_CHECK(esp_lcd_panel_io_register_event_callbacks(panel_io_handle, &io_callbacks, &yg_display));
@@ -148,6 +147,8 @@ void yg_display_init(i2c_master_bus_handle_t i2c_bus_handle) {
     ESP_ERROR_CHECK(esp_lcd_panel_invert_color(yg_display.panel_handle, true));
     ESP_ERROR_CHECK(esp_lcd_panel_mirror(yg_display.panel_handle, true, false));
     ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(yg_display.panel_handle, true));
+
+    ESP_ERROR_CHECK(esp_timer_start_periodic(tick_timer, 16666));
 }
 
 bool yg_display_get_touches(esp_lcd_touch_handle_t *touch) {
